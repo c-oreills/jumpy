@@ -1,6 +1,6 @@
 (ns grow-blob.core
   (:import 
-    (org.newdawn.slick AppGameContainer BasicGame Color Sound Font Graphics GameContainer)
+    (org.newdawn.slick AppGameContainer BasicGame Color Sound Font Graphics GameContainer SpriteSheet)
     )
   (:gen-class))
 
@@ -8,72 +8,44 @@
 
 (def ^:dynamic *text* (atom "=)"))
 
-(def ^:dynamic *x* (atom 0))
-(def ^:dynamic *dx* (atom 0))
-(def ^:dynamic *y* (atom 0))
-(def ^:dynamic *dy* (atom 0))
-(def ^:dynamic *speed* (atom 4))
+(def ^:dynamic *world* (atom {:players {}}))
 
-(def ^:dynamic *x2* (atom 0))
-(def ^:dynamic *dx2* (atom 0))
-(def ^:dynamic *y2* (atom 0))
-(def ^:dynamic *dy2* (atom 0))
-(def ^:dynamic *speed2* (atom 4))
+(def speed 4)
 
-(def ^:dynamic *x3* (atom 0))
-(def ^:dynamic *dx3* (atom 0))
-(def ^:dynamic *y3* (atom 0))
-(def ^:dynamic *dy3* (atom 0))
-(def ^:dynamic *speed3* (atom 4))
+(defn new-player [id]
+  {:id id :type :frog
+   :x 0 :y 0 :dx 0 :dy 0
+   :key-left false :key-right false
+   :key-up false :key-down false})
 
 (defn update [container delta]
-  (swap! *x* + (* @*speed* @*dx*))
-  (swap! *y* + (* @*speed* @*dy*))
-  (swap! *x2* + (* @*speed2* @*dx2*))
-  (swap! *y2* + (* @*speed2* @*dy2*))
-  (swap! *x3* + (* @*speed3* @*dx3*))
-  (swap! *y3* + (* @*speed3* @*dy3*))
   )
 
 (defn render [container graphics]
-  (.setColor graphics Color/blue)
-  (.drawString graphics @*text* @*x* @*y*)
-  (.setColor graphics Color/red)
-  (.drawString graphics @*text* @*x2* @*y2*)
-  (.setColor graphics Color/green)
-  (.drawString graphics @*text* @*x3* @*y3*)
-  ;_(.drawString graphics @*text* (+ @*x* 100) @*y*)
-  ;_(.drawString graphics @*text* (+ @*x* 100) (+ @*y* 100))
+  (let [ss (new SpriteSheet "res/animals.png" 32 32)]
+    (.drawImage graphics (.getSubImage ss 0 0) 10 10))
   )
 
+(defn set-player-key [player-id key value]
+  (swap! *world* #(assoc-in % [:players player-id key] value)))
+
+(defn set-player-key-vec [player-id key]
+  (vec
+    (for [b [true false]]
+      (partial set-player-key player-id key b))))
+
+(defn set-player-key-fns [player-id l r u d]
+  [for [[d v] [
+    l (set-player-key-vec :key-left)
+     r (set-player-key-vec :key-right)
+     u (set-player-key-vec :key-up)
+     d (set-player-key-vec :key-down)
+
 (def key-fns
-  {
-   57 [#(do
-          (reset! *x* 0) (reset! *y* 0)
-          (reset! *x2* 0) (reset! *y2* 0)
-          (reset! *x3* 0) (reset! *y3* 0)) nil]
-   205 [#(swap! *dx* inc) #(swap! *dx* dec)]
-   203 [#(swap! *dx* dec) #(swap! *dx* inc)]
-   200 [#(swap! *dy* dec) #(swap! *dy* inc)]
-   208 [#(swap! *dy* inc) #(swap! *dy* dec)]
-   31 [#(swap! *dx2* inc) #(swap! *dx2* dec)]
-   30 [#(swap! *dx2* dec) #(swap! *dx2* inc)]
-   17 [#(swap! *dy2* dec) #(swap! *dy2* inc)]
-   19 [#(swap! *dy2* inc) #(swap! *dy2* dec)]
-   77 [#(swap! *dx3* inc) #(swap! *dx3* dec)]
-   75 [#(swap! *dx3* dec) #(swap! *dx3* inc)]
-   72 [#(swap! *dy3* dec) #(swap! *dy3* inc)]
-   76 [#(swap! *dy3* inc) #(swap! *dy3* dec)]
-   157 [#(reset! *speed* 16) #(reset! *speed* 4)]
-   29 [#(reset! *speed2* 16) #(reset! *speed2* 4)]
-   82 [#(reset! *speed3* 24) #(reset! *speed3* 4)]
-   2 [#(reset! *text* "=(") nil]
-   3 [#(reset! *text* "=)") nil]
-   4 [#(reset! *text* "///\\oo/\\\\\\") nil]
-   5 [#(reset! *text* "<(^.^)>") nil]
-   6 [#(reset! *text* "<`)))><") nil]
-   7 [#(reset! *text* "Roach is a twat") nil]
-   })
+  (conj
+    (set-player-key-fns 1 205 203 200 208)
+    (set-player-key-fns 2 31 30 17 19)
+    (set-player-key-fns 3 77 75 72 76)))
 
 (defn key-handler [k c t]
   ((or
