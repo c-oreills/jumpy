@@ -9,7 +9,7 @@
 (def ^:dynamic *text* (atom "=)"))
 
 (defn new-player [id]
-  {:id id :type :frog
+  {:id id :type :frog :heading :left :tick 0
    :x 0 :y 0 :dx 0 :dy 0
    :key-left false :key-right false
    :key-up false :key-down false})
@@ -19,30 +19,47 @@
 (def speed 4)
 (def block-size 32)
 
-(def jump-init-dy -5)
-(def jump-cont-dy -1)
-(def gravity-dy 2)
+(def jump-init-dy -15)
+(def jump-cont-dy -2)
+(def gravity-dy 3)
+
+(def per-frame 100)
+
+(def animal-map
+  {:cat [0 0] :dove-w [3 0] :dove-f [6 0] :rat [9 0]
+   :chick [0 4] :chicken [3 4] :frog [6 4] :rabbit [9 4]})
 
 (defn grounded? [player]
-  (= 400 (player :x)))
+  (= 400 (player :y)))
 
-(defn update-player-velocity [player]
-  (conj
-    player
-    {:dx (+
-          (if (player :key-left) -1 0)
-          (if (player :key-right) 1 0))
-     :dy (if (grounded? player)
-           (if (player :key-up)
-             jump-init-dy)
-           (+
-            (player :dy)
-            gravity-dy
-            (if (and 
-                  (player :key-up)
-                  (neg? (player :dy)))
-              jump-cont-dy
-              0)))}))
+(defn update-player-velocity [player delta]
+  (letfn [(new-tick [] (mod
+                         (+ (player :tick) delta)
+                         (* 3 per-frame)))]
+    (conj
+      player
+      {:dx (+
+            (if (player :key-left) -1 0)
+            (if (player :key-right) 1 0))
+       :dy (if (grounded? player)
+             (if (player :key-up)
+               jump-init-dy
+               0)
+             (+
+              (player :dy)
+              gravity-dy
+              (if (and
+                    (player :key-up)
+                    (neg? (player :dy)))
+                jump-cont-dy
+                0)))}
+      (if (player :key-down) [:type (rand-nth (keys animal-map))])
+      (cond
+        (and (player :key-left) (player :key-right)) nil
+        (player :key-left) {:heading :left :tick (new-tick)}
+        (player :key-right) {:heading :right :tick (new-tick)}
+        :else {:tick per-frame})
+      )))
 
 (defn update-player-pos [player]
   (conj
@@ -52,22 +69,40 @@
           (+ (player :y) (player :dy))
           400)}))
 
-(defn move-player [player]
-  (-> player update-player-velocity update-player-pos))
+(defn move-player [player delta]
+  (-> player (update-player-velocity delta) update-player-pos))
 
 (defn update [container delta]
   (swap! *world*
          (fn [w]
            (conj
              w
-             {:players (into {} (for [[id p] (w :players)] [id (move-player p)]))}
+             {:players (into {} (for [[id p] (w :players)] [id (move-player p delta)]))}
   ))))
 
+(defn init [container]
+  (def ss (new SpriteSheet "res/animals.png" block-size block-size))
+  )
+
+(defn get-sprite [^SpriteSheet ss animal dir n]
+  (let [dirs-map
+        (into {} (map-indexed (comp vec reverse vector)
+                              [:down :left :right :up]))
+        [x y] (apply map + [(animal-map animal)
+                            [0 (dirs-map dir)]
+                            [n 0]])]
+    (.getSubImage ss x y)))
+
 (defn render [container graphics]
-  (let [w @*world*
-        ss (new SpriteSheet "res/animals.png" block-size block-size)]
+  (let [w @*world*]
     (doseq [[_ p] (w :players)]
-      (.drawImage graphics (.getSubImage ss 0 0) (p :x) (p :y)))))
+      (.drawImage graphics
+                  (get-sprite ss
+                              (p :type)
+                              (p :heading)
+                              (quot (p :tick) per-frame))
+                  (p :x)
+                  (p :y)))))
 
 (defn set-player-key [player-id key value]
   (swap! *world* (fn [w]
@@ -110,7 +145,8 @@
 
 (def simple-test
   (proxy [BasicGame] ["SimpleTest"]
-    (init [container])
+    (init [container]
+      (init container))
     (update [container delta]
       (update container delta))
     (render [container graphics]
