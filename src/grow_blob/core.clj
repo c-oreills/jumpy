@@ -10,55 +10,62 @@
 
 (defn new-player [id]
   {:id id :type :frog
-   :x 0 :y 0 :dx 0 :dy 0 :grounded true
+   :x 0 :y 0 :dx 0 :dy 0
    :key-left false :key-right false
    :key-up false :key-down false})
 
 (def ^:dynamic *world* (atom {:players {}}))
 
 (def speed 4)
+(def block-size 32)
 
 (def jump-init-dy -5)
 (def jump-cont-dy -1)
 (def gravity-dy 2)
 
-(defn handle-player-keys [player]
+(defn grounded? [player]
+  (= 400 (player :x)))
+
+(defn update-player-velocity [player]
   (conj
     player
     {:dx (+
           (if (player :key-left) -1 0)
           (if (player :key-right) 1 0))
-     :dy (+
-          (player :dy)
-          gravity-dy
-          (or
-            (if (player :key-up)
-              (if (player :grounded)
-                jump-init-dy
-                (if (neg? (player :dy))
-                  jump-cont-dy)))
-            0))}))
+     :dy (if (grounded? player)
+           (if (player :key-up)
+             jump-init-dy)
+           (+
+            (player :dy)
+            gravity-dy
+            (if (and 
+                  (player :key-up)
+                  (neg? (player :dy)))
+              jump-cont-dy
+              0)))}))
 
 (defn update-player-pos [player]
-  (let [player (handle-player-keys player)]
-    (conj
-      player
-      {:x (+ (player :x) (player :dx))
-       :y (min
-            (+ (player :y) (player :dy))
-            400)})))
+  (conj
+    player
+    {:x (+ (player :x) (player :dx))
+     :y (min
+          (+ (player :y) (player :dy))
+          400)}))
+
+(defn move-player [player]
+  (-> player update-player-velocity update-player-pos))
 
 (defn update [container delta]
   (swap! *world*
          (fn [w]
            (conj
              w
-             {:players (into {} (for [[id p] (w :players)] [id (update-player-pos p)]))}
+             {:players (into {} (for [[id p] (w :players)] [id (move-player p)]))}
   ))))
 
 (defn render [container graphics]
   (let [w @*world*
-        ss (new SpriteSheet "res/animals.png" 32 32)]
+        ss (new SpriteSheet "res/animals.png" block-size block-size)]
     (doseq [[_ p] (w :players)]
       (.drawImage graphics (.getSubImage ss 0 0) (p :x) (p :y)))))
 
