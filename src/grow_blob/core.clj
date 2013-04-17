@@ -38,10 +38,7 @@
                          (* 3 per-frame)))]
     (conj
       player
-      {:dx (+
-            (if (player :key-left) -1 0)
-            (if (player :key-right) 1 0))
-       :dy (if (grounded? player)
+      {:dy (if (grounded? player)
              (if (player :key-up)
                jump-init-dy
                0)
@@ -55,10 +52,10 @@
                 0)))}
       (if (player :key-down) [:type (rand-nth (keys animal-map))])
       (cond
-        (and (player :key-left) (player :key-right)) nil
-        (player :key-left) {:heading :left :tick (new-tick)}
-        (player :key-right) {:heading :right :tick (new-tick)}
-        :else {:tick per-frame})
+        (and (player :key-left) (player :key-right)) {:dx 0}
+        (player :key-left) {:dx -1 :heading :left :tick (new-tick)}
+        (player :key-right) {:dx 1 :heading :right :tick (new-tick)}
+        :else {:dx 0 :tick per-frame})
       )))
 
 (defn update-player-pos [player]
