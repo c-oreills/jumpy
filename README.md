@@ -1,35 +1,17 @@
-# grow-blob
+# Jumpy
 
-FIXME: description
+Test clojure/slick game with local multiplayer.
 
-## Installation
+![screenshot](https://raw.githubusercontent.com/c-oreills/jumpy/master/screen.png)
 
-Download from http://example.com/FIXME.
+## Running
 
-## Usage
+`lein run`
 
-FIXME: explanation
+## Controls
 
-    $ java -jar grow-blob-0.1.0-standalone.jar [args]
-
-## Options
-
-FIXME: listing of options this app accepts.
-
-## Examples
-
-...
-
-### Bugs
-
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
-
-## License
-
-Copyright © 2013 FIXME
-
-Distributed under the Eclipse Public License, the same as Clojure.
+Player | Jump | Change Char | Left | Right
+--- | --- | --- | --- | ---
+Player 1 | Up | Down | Left | Right
+Player 2 | W | S | A | D
+Player 3 | Num8 | Num5 | Num4 | Num6
